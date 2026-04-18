@@ -1,0 +1,430 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green:    #1a3a2e;
+  --green-md: #254d3d;
+  --green-lt: #2e6150;
+  --gold:     #c9a84c;
+  --gold-lt:  #e8c97a;
+  --cream:    #f7f3ec;
+  --cream-dk: #ede7db;
+  --text:     #1a1a18;
+  --muted:    #6b6b66;
+  --radius:   14px;
+  --radius-sm: 8px;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(26,58,46,0.08) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+/* ── layout ── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ── screens ── */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp 0.35s ease both; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── logo header ── */
+.site-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.logo-ar {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.logo-sub {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+/* ── card ── */
+.loyalty-card {
+  background: var(--green);
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.75rem;
+}
+
+.loyalty-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 0, transparent 12px),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 0, transparent 12px);
+  pointer-events: none;
+}
+
+.card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.card-brand-ar {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1;
+}
+.card-brand-en {
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-top: 2px;
+}
+.card-customer {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* ── stamp circles ── */
+.circles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  position: relative;
+}
+
+.stamp-circle {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stamp-circle.stamped {
+  background: rgba(201,168,76,0.18);
+  border-color: var(--gold);
+}
+
+.stamp-circle.free-slot {
+  background: rgba(201,168,76,0.07);
+  border: 1.5px dashed rgba(201,168,76,0.5);
+}
+
+.stamp-circle.free-slot.earned {
+  background: var(--gold);
+  border: 1.5px solid var(--gold);
+  animation: glowPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
+  50%       { box-shadow: 0 0 0 10px rgba(201,168,76,0); }
+}
+
+.stamp-mark {
+  font-size: 20px;
+  color: var(--gold);
+  opacity: 0;
+  transform: scale(0.3) rotate(-20deg);
+  transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+.stamp-circle.stamped .stamp-mark {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.free-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.5px;
+}
+.free-slot.earned .free-text {
+  color: var(--green);
+}
+
+/* ── progress ── */
+.card-progress {
+  margin-top: 1rem;
+  position: relative;
+}
+.progress-track {
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.progress-text {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  text-align: right;
+  margin-top: 5px;
+  letter-spacing: 0.5px;
+}
+
+.card-footer-handle {
+  font-size: 10px;
+  color: rgba(255,255,255,0.2);
+  text-align: center;
+  margin-top: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+}
+
+/* ── form elements ── */
+.form-group { margin-bottom: 1rem; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  padding: 0 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(26,58,46,0.1);
+}
+.form-input::placeholder { color: #bbb; }
+
+/* ── OTP boxes ── */
+.otp-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+.otp-input {
+  width: 56px;
+  height: 64px;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--green);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  caret-color: var(--gold);
+}
+.otp-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(26,58,46,0.1);
+}
+
+/* ── buttons ── */
+.btn {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.3px;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-primary {
+  background: var(--green);
+  color: var(--gold);
+}
+.btn-primary:hover:not(:disabled) { background: var(--green-md); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1.5px solid var(--cream-dk);
+  margin-top: 8px;
+}
+.btn-ghost:hover { background: var(--cream-dk); color: var(--text); }
+
+.btn-stamp {
+  background: var(--gold);
+  color: var(--green);
+  font-weight: 500;
+  margin-top: 1rem;
+  font-size: 16px;
+}
+.btn-stamp:hover:not(:disabled) { background: var(--gold-lt); }
+
+/* ── text helpers ── */
+.screen-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 6px;
+}
+.screen-sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  transition: color 0.15s;
+}
+.back-link:hover { color: var(--text); }
+
+/* ── alert / toast ── */
+.alert {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: none;
+}
+.alert.show { display: block; }
+.alert-error { background: #fdf0ee; color: #a33; border: 1px solid #f5c5be; }
+.alert-success { background: #eef5f0; color: #1a3a2e; border: 1px solid #b8d9c5; }
+.alert-info {
+  background: rgba(26,58,46,0.06);
+  color: var(--green);
+  border: 1px solid rgba(26,58,46,0.15);
+  display: block;
+}
+
+/* ── info rows ── */
+.info-card {
+  background: white;
+  border: 1px solid var(--cream-dk);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--cream-dk);
+  font-size: 13px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .lbl { color: var(--muted); }
+.info-row .val { font-weight: 500; color: var(--text); }
+
+/* ── PIN dots ── */
+.pin-dots {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+.pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--cream-dk);
+  background: transparent;
+  transition: all 0.2s;
+}
+.pin-dot.filled {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.pin-key {
+  height: 58px;
+  border: 1.5px solid var(--cream-dk);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+}
+.pin-key:hover { background: var(--cream-dk); }
+.pin-key:active { transform: scale(0.96); }
+.pin-key.del { font-family: 'DM Sans', sans-serif; font-size: 16px; }

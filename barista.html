@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sep Cafe – Barista Panel</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .barista-badge {
+      display: inline-block;
+      background: rgba(26,58,46,0.08);
+      color: #1a3a2e;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="container">
+
+    <header class="site-header">
+      <div class="logo-ar">سبتمبر</div>
+      <div class="logo-sub">Staff Panel</div>
+    </header>
+
+    <!-- ── Screen 1: PIN ── -->
+    <div class="screen active" id="s-pin">
+      <div style="text-align:center">
+        <span class="barista-badge">Barista access</span>
+        <p class="screen-title" style="text-align:center">Enter PIN</p>
+        <p class="screen-sub" style="text-align:center">Use your 4-digit staff PIN to access the stamping panel.</p>
+      </div>
+
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <div class="alert alert-error" id="pin-error"></div>
+
+      <div class="pin-pad">
+        <button class="pin-key" data-digit="1">1</button>
+        <button class="pin-key" data-digit="2">2</button>
+        <button class="pin-key" data-digit="3">3</button>
+        <button class="pin-key" data-digit="4">4</button>
+        <button class="pin-key" data-digit="5">5</button>
+        <button class="pin-key" data-digit="6">6</button>
+        <button class="pin-key" data-digit="7">7</button>
+        <button class="pin-key" data-digit="8">8</button>
+        <button class="pin-key" data-digit="9">9</button>
+        <div></div>
+        <button class="pin-key" data-digit="0">0</button>
+        <button class="pin-key del" id="pin-del">⌫</button>
+      </div>
+    </div>
+
+    <!-- ── Screen 2: Customer lookup ── -->
+    <div class="screen" id="s-lookup">
+      <span class="back-link" id="back-to-pin">← Lock panel</span>
+      <span class="barista-badge">Barista access</span>
+      <p class="screen-title">Look up customer</p>
+      <p class="screen-sub">Enter the customer's phone number to pull up their loyalty card.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="lookup-input">Customer phone</label>
+        <input
+          class="form-input"
+          id="lookup-input"
+          type="tel"
+          placeholder="+968 9X XXX XXXX"
+        />
+      </div>
+
+      <div class="alert alert-error" id="lookup-error"></div>
+
+      <button class="btn btn-primary" id="lookup-btn">Look up customer</button>
+    </div>
+
+    <!-- ── Screen 3: Stamp panel ── -->
+    <div class="screen" id="s-stamp">
+      <span class="back-link" id="back-to-lookup">← New customer</span>
+
+      <div class="loyalty-card">
+        <div class="card-header">
+          <div class="card-brand-ar">سبتمبر</div>
+          <div class="card-brand-en">cafe</div>
+          <div class="card-customer" id="stamp-phone"></div>
+        </div>
+
+        <div class="circles-grid" id="stamp-circles"></div>
+
+        <div class="card-progress">
+          <div class="progress-track">
+            <div class="progress-fill" id="s-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="progress-text" id="s-progress-text">0 / 5 drinks</div>
+        </div>
+
+        <div class="card-footer-handle">@Sep.Cafe_Oman</div>
+      </div>
+
+      <div class="alert alert-info" id="stamp-status"></div>
+
+      <button class="btn btn-stamp" id="stamp-btn">Confirm purchase — add stamp</button>
+      <button class="btn btn-ghost" id="back-to-lookup" style="margin-top:8px">Done — next customer</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="js/barista.js"></script>
+</body>
+</html>

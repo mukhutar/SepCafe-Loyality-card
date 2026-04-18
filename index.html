@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sep Cafe – Loyalty Card</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="page">
+  <div class="container">
+
+    <header class="site-header">
+      <div class="logo-ar">سبتمبر</div>
+      <div class="logo-sub">Loyalty Card</div>
+    </header>
+
+    <!-- ── Screen 1: Phone entry ── -->
+    <div class="screen active" id="s-phone">
+      <p class="screen-title">Welcome back</p>
+      <p class="screen-sub">Enter your WhatsApp number and we'll send you a quick verification code.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="phone-input">WhatsApp number</label>
+        <input
+          class="form-input"
+          id="phone-input"
+          type="tel"
+          placeholder="+968 9X XXX XXXX"
+          autocomplete="tel"
+        />
+      </div>
+
+      <div class="alert alert-error" id="phone-error"></div>
+
+      <button class="btn btn-primary" id="send-otp-btn">
+        Send code on WhatsApp
+      </button>
+    </div>
+
+    <!-- ── Screen 2: OTP verify ── -->
+    <div class="screen" id="s-otp">
+      <span class="back-link" id="back-to-phone">← Back</span>
+      <p class="screen-title">Check WhatsApp</p>
+      <p class="screen-sub">
+        We sent a 4-digit code to <strong id="otp-phone-display"></strong>.
+        Enter it below.
+      </p>
+
+      <div class="otp-row">
+        <input class="otp-input" id="o1" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" />
+        <input class="otp-input" id="o2" type="text" inputmode="numeric" maxlength="1" />
+        <input class="otp-input" id="o3" type="text" inputmode="numeric" maxlength="1" />
+        <input class="otp-input" id="o4" type="text" inputmode="numeric" maxlength="1" />
+      </div>
+
+      <div class="alert alert-error" id="otp-error"></div>
+
+      <button class="btn btn-primary" id="verify-btn">Verify</button>
+      <button class="btn btn-ghost" id="back-to-phone-btn" onclick="document.getElementById('back-to-phone').click()">
+        Resend code
+      </button>
+    </div>
+
+    <!-- ── Screen 3: Loyalty card ── -->
+    <div class="screen" id="s-card">
+
+      <div class="loyalty-card">
+        <div class="card-header">
+          <div class="card-brand-ar">سبتمبر</div>
+          <div class="card-brand-en">cafe</div>
+          <div class="card-customer" id="card-phone"></div>
+        </div>
+
+        <div class="circles-grid" id="circles-container"></div>
+
+        <div class="card-progress">
+          <div class="progress-track">
+            <div class="progress-fill" id="c-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="progress-text" id="c-progress-text">0 / 5 drinks</div>
+        </div>
+
+        <div class="card-footer-handle">@Sep.Cafe_Oman</div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-row">
+          <span class="lbl">Phone</span>
+          <span class="val" id="info-phone">—</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">Total drinks</span>
+          <span class="val" id="info-total">0</span>
+        </div>
+        <div class="info-row">
+          <span class="lbl">Free drinks earned</span>
+          <span class="val" id="info-free">0</span>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:#999;text-align:center;margin-bottom:1rem;">
+        Show this screen to the barista after each purchase.
+      </p>
+
+      <button class="btn btn-ghost" id="logout-btn">Sign out</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="js/customer.js"></script>
+</body>
+</html>

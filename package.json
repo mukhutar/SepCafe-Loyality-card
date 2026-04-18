@@ -1,0 +1,8 @@
+{
+  "name": "sep-cafe-loyalty",
+  "version": "1.0.0",
+  "description": "Sep Cafe digital loyalty card system",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
