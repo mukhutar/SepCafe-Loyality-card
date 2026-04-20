@@ -1,31 +1,11 @@
-// ─────────────────────────────────────────────
-//  send-otp.js  –  Netlify serverless function
-//
-//  Generates a 4-digit OTP, stores it in memory
-//  (Netlify function instances are ephemeral, so
-//  for production use a KV store like Upstash Redis
-//  or Firebase itself — see comment below),
-//  then sends it via Twilio WhatsApp Sandbox.
-//
-//  Required environment variables (set in Netlify
-//  dashboard → Site settings → Environment variables):
-//
-//    TWILIO_ACCOUNT_SID   your Twilio Account SID
-//    TWILIO_AUTH_TOKEN    your Twilio Auth Token
-//    TWILIO_WHATSAPP_FROM whatsapp:+14155238886  (sandbox number)
-// ─────────────────────────────────────────────
+const admin            = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 
-const { initializeApp, getApps, cert } = require('firebase-admin/app');
-const { getFirestore }                  = require('firebase-admin/firestore');
-
-// Initialise Firebase Admin once
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId:   process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-    })
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+    )
   });
 }
 const db = getFirestore();
