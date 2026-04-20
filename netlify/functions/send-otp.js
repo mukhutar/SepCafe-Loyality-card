@@ -55,6 +55,7 @@ exports.handler = async function (event) {
 
   // Store OTP in Firestore (otp collection, doc = phone)
   await db.collection('otps').doc(phone).set({ otp, expires });
+  console.log('OTP stored for phone:', phone);
 
   // Send via Twilio WhatsApp
   const accountSid = process.env.TWILIO_ACCOUNT_SID;

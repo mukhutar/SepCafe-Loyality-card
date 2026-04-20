@@ -21,6 +21,7 @@ exports.handler = async function (event) {
   let phone, code;
   try {
     ({ phone, code } = JSON.parse(event.body));
+      console.log('verify-otp called with phone:', phone, 'code:', code);
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body' }) };
   }
