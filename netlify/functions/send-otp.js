@@ -34,6 +34,11 @@ function generateOTP() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+function normalisePhone(raw) {
+  const digits = raw.replace(/[\s\-().]/g, '');
+  return digits.startsWith('+') ? digits : '+' + digits;
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -49,6 +54,9 @@ exports.handler = async function (event) {
   if (!phone || phone.length < 8) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid phone number' }) };
   }
+
+
+  phone = normalisePhone(phone);
 
   const otp     = generateOTP();
   const expires = Date.now() + 10 * 60 * 1000; // 10 minutes

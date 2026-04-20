@@ -13,6 +13,11 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
+function normalisePhone(raw) {
+  const digits = raw.replace(/[\s\-().]/g, '');
+  return digits.startsWith('+') ? digits : '+' + digits;
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -29,6 +34,8 @@ exports.handler = async function (event) {
   if (!phone || !code) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Phone and code are required' }) };
   }
+
+  phone = normalisePhone(phone);
 
   const ref  = db.collection('otps').doc(phone);
   const snap = await ref.get();
