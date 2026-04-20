@@ -3,9 +3,11 @@ const { getFirestore } = require('firebase-admin/firestore');
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-    )
+    credential: admin.credential.cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    })
   });
 }
 const db = getFirestore();
@@ -24,60 +26,68 @@ exports.handler = async function (event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  let phone;
   try {
-    ({ phone } = JSON.parse(event.body));
-  } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body' }) };
-  }
+    let phone;
+    try {
+      ({ phone } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body' }) };
+    }
 
-  if (!phone || phone.length < 8) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid phone number' }) };
-  }
+    if (!phone || phone.length < 8) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid phone number' }) };
+    }
 
+    phone = normalisePhone(phone);
 
-  phone = normalisePhone(phone);
+    const otp     = generateOTP();
+    const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-  const otp     = generateOTP();
-  const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    // Store OTP in Firestore
+    await db.collection('otps').doc(phone).set({ otp, expires });
+    console.log('OTP stored for phone:', phone);
 
-  // Store OTP in Firestore (otp collection, doc = phone)
-  await db.collection('otps').doc(phone).set({ otp, expires });
-  console.log('OTP stored for phone:', phone);
+    // Send via Twilio WhatsApp
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken  = process.env.TWILIO_AUTH_TOKEN;
+    const from       = process.env.TWILIO_WHATSAPP_FROM;
 
-  // Send via Twilio WhatsApp
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken  = process.env.TWILIO_AUTH_TOKEN;
-  const from       = process.env.TWILIO_WHATSAPP_FROM; 
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
 
-  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const body = new URLSearchParams({
+      From: from,
+      To:   `whatsapp:${phone}`,
+      Body: `Your Sep Cafe verification code is: *${otp}*\n\nValid for 10 minutes.`
+    });
 
-  const body = new URLSearchParams({
-    From: from,
-    To:   `whatsapp:${phone}`,
-    Body: `Your Sep Cafe verification code is: *${otp}*\n\nValid for 10 minutes.`
-  });
+    const response = await fetch(twilioUrl, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+      },
+      body: body.toString()
+    });
 
-  const response = await fetch(twilioUrl, {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-    },
-    body: body.toString()
-  });
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Twilio error:', err);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Failed to send WhatsApp message. Check Twilio credentials.' })
+      };
+    }
 
-  if (!response.ok) {
-    const err = await response.json();
-    console.error('Twilio error:', err);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, message: 'OTP sent via WhatsApp' })
+    };
+
+  } catch (err) {
+    console.error('send-otp error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to send WhatsApp message. Check Twilio credentials.' })
+      body: JSON.stringify({ error: err.message })
     };
   }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ success: true, message: 'OTP sent via WhatsApp' })
-  };
 };
