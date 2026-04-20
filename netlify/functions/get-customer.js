@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -17,13 +17,34 @@ exports.handler = async function (event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { phone } = JSON.parse(event.body);
-  if (!phone) return { statusCode: 400, body: JSON.stringify({ error: 'Phone required' }) };
+  try {
+    const { phone } = JSON.parse(event.body);
+    if (!phone) return { statusCode: 400, body: JSON.stringify({ error: 'Phone required' }) };
 
-  const snap = await db.collection('customers').doc(phone).get();
-  if (!snap.exists) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'Customer not found' }) };
+    const ref  = db.collection('customers').doc(phone);
+    const snap = await ref.get();
+
+    // ── Create customer if they don't exist yet ──
+    if (!snap.exists) {
+      const newCustomer = {
+        phone,
+        stamps:      0,
+        totalDrinks: 0,
+        freeEarned:  0,
+        createdAt:   FieldValue.serverTimestamp(),
+        lastVisit:   FieldValue.serverTimestamp(),
+      };
+      await ref.set(newCustomer);
+      return { statusCode: 200, body: JSON.stringify(newCustomer) };
+    }
+
+    return { statusCode: 200, body: JSON.stringify(snap.data()) };
+
+  } catch (err) {
+    console.error('get-customer error:', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
-
-  return { statusCode: 200, body: JSON.stringify(snap.data()) };
 };

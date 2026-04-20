@@ -1,4 +1,3 @@
-// NEW firebase.js — no direct Firestore access
 
 export function normalisePhone(raw) {
   const digits = raw.replace(/[\s\-().]/g, '');
@@ -7,13 +6,20 @@ export function normalisePhone(raw) {
 
 async function post(endpoint, body) {
   const res = await fetch(`/.netlify/functions/${endpoint}`, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body:    JSON.stringify(body),
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `${endpoint} failed`);
+  return data;
 }
 
-export const getCustomer       = (phone) => post('get-customer', { phone });
-export const addStamp          = (phone) => post('add-stamp',    { phone });
-export const getOrCreateCustomer = (phone) => post('add-stamp',  { phone }); // add-stamp already handles creation
+// Fetch customer (creates them if first time, no stamp added)
+export const getOrCreateCustomer = (phone) => post('get-customer', { phone });
+
+// Explicitly add a stamp — call this only when the barista taps "Add Stamp"
+export const addStamp = (phone) => post('add-stamp', { phone });
+
+// Fetch existing customer only
+export const getCustomer = (phone) => post('get-customer', { phone });

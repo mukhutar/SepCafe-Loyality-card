@@ -17,48 +17,76 @@ exports.handler = async function (event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { phone } = JSON.parse(event.body);
-  if (!phone) return { statusCode: 400, body: JSON.stringify({ error: 'Phone required' }) };
+  try {
+    const { phone } = JSON.parse(event.body);
+    if (!phone) return { statusCode: 400, body: JSON.stringify({ error: 'Phone required' }) };
 
-  const ref  = db.collection('customers').doc(phone);
-  const snap = await ref.get();
+    const ref  = db.collection('customers').doc(phone);
+    const snap = await ref.get();
 
-  // Create customer if they don't exist yet
-  if (!snap.exists) {
-    const newCustomer = {
-      phone,
-      stamps: 1,
-      totalDrinks: 1,
-      freeEarned: 0,
-      createdAt: FieldValue.serverTimestamp(),
-      lastVisit: FieldValue.serverTimestamp(),
-    };
-    await ref.set(newCustomer);
-    return { statusCode: 200, body: JSON.stringify(newCustomer) };
-  }
+    // ── Create customer if they don't exist yet ──
+    if (!snap.exists) {
+      const newCustomer = {
+        phone,
+        stamps:      1,
+        totalDrinks: 1,
+        freeEarned:  0,
+        createdAt:   FieldValue.serverTimestamp(),
+        lastVisit:   FieldValue.serverTimestamp(),
+      };
+      await ref.set(newCustomer);
+      return { statusCode: 200, body: JSON.stringify(newCustomer) };
+    }
 
-  const customer = snap.data();
+    const customer = snap.data();
 
-  if (customer.stamps >= 5) {
+    // ── Stamps reached 5 → redeem a free drink ──
+    if (customer.stamps >= 5) {
+      await ref.update({
+        stamps:     0,
+        freeEarned: FieldValue.increment(1),
+        lastVisit:  FieldValue.serverTimestamp(),
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ...customer,
+          stamps:     0,
+          freeEarned: customer.freeEarned + 1,
+          redeemed:   true,
+        })
+      };
+    }
+
+    // ── Normal stamp ──
+    const newStamps = customer.stamps + 1;
     await ref.update({
-      stamps: 0,
-      freeEarned: FieldValue.increment(1),
-      lastVisit: FieldValue.serverTimestamp(),
+      stamps:      newStamps,
+      totalDrinks: FieldValue.increment(1),
+      lastVisit:   FieldValue.serverTimestamp(),
     });
-    return { statusCode: 200, body: JSON.stringify({
-      ...customer, stamps: 0, freeEarned: customer.freeEarned + 1, redeemed: true
-    })};
+
+    const updated = {
+      ...customer,
+      stamps:      newStamps,
+      totalDrinks: customer.totalDrinks + 1,
+    };
+    if (newStamps === 5) updated.justUnlocked = true;
+
+    return { statusCode: 200, body: JSON.stringify(updated) };
+
+  } catch (err) {
+    console.error('add-stamp error:', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
+  console.log('ENV CHECK:', {
+  projectId:   process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  hasKey:      !!process.env.FIREBASE_PRIVATE_KEY,
+});
 
-  const newStamps = customer.stamps + 1;
-  await ref.update({
-    stamps: newStamps,
-    totalDrinks: FieldValue.increment(1),
-    lastVisit: FieldValue.serverTimestamp(),
-  });
-
-  const updated = { ...customer, stamps: newStamps, totalDrinks: customer.totalDrinks + 1 };
-  if (newStamps === 5) updated.justUnlocked = true;
-
-  return { statusCode: 200, body: JSON.stringify(updated) };
 };
+
