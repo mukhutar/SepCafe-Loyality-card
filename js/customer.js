@@ -2,14 +2,12 @@
 //  customer.js  –  Firebase Phone Auth flow
 // ─────────────────────────────────────────────
 
-
 import {
-  getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-import { auth } from './firebase.js';
+import { auth, getOrCreateCustomer } from './firebase.js';
 
 let confirmationResult = null;
 let currentPhone       = '';
@@ -29,6 +27,25 @@ function hideError(elId) {
   document.getElementById(elId).classList.remove('show');
 }
 
+// ── reCAPTCHA setup ───────────────────────────
+function setupRecaptcha() {
+  if (window.recaptchaVerifier) return;
+
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    size: 'normal',
+    callback: () => {
+      // reCAPTCHA solved — user can now send OTP
+    },
+    'expired-callback': () => {
+      showError('phone-error', 'reCAPTCHA expired. Please verify again.');
+      window.recaptchaVerifier = null;
+      setupRecaptcha();
+    }
+  });
+
+  window.recaptchaVerifier.render();
+}
+
 // ── step 1: send OTP via Firebase ─────────────
 async function sendOTP() {
   const raw   = document.getElementById('phone-input').value.trim();
@@ -45,14 +62,6 @@ async function sendOTP() {
   btn.textContent = 'Sending…';
 
   try {
-    // set up invisible reCAPTCHA — required by Firebase Phone Auth
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-btn', {
-        size: 'invisible',
-        callback: () => {}
-      });
-    }
-
     confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
     currentPhone = phone;
 
@@ -61,10 +70,11 @@ async function sendOTP() {
     focusOTPBox('o1');
   } catch (err) {
     console.error('sendOTP error:', err);
-    // reset recaptcha on error so user can retry
+    // reset recaptcha on error
     if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
+      window.recaptchaVerifier.render().then(widgetId => {
+        grecaptcha.reset(widgetId);
+      });
     }
     showError('phone-error', err.message || 'Failed to send code. Check your number and try again.');
   } finally {
@@ -179,12 +189,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // init reCAPTCHA on page load
+  setupRecaptcha();
+
   document.getElementById('send-otp-btn').addEventListener('click', sendOTP);
   document.getElementById('phone-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendOTP();
   });
 
-  // 6-digit OTP boxes for Firebase (Firebase sends 6 digits, not 4)
   document.getElementById('o1').addEventListener('input',   e => otpInput(e, 'o2'));
   document.getElementById('o2').addEventListener('input',   e => otpInput(e, 'o3'));
   document.getElementById('o2').addEventListener('keydown', e => otpKeyDown(e, 'o1'));
