@@ -1,10 +1,18 @@
 // ─────────────────────────────────────────────
-//  customer.js  –  Phone → OTP → Card flow
+//  customer.js  –  Firebase Phone Auth flow
 // ─────────────────────────────────────────────
 
-import { normalisePhone, getOrCreateCustomer } from './firebase.js';
 
-let currentPhone = '';
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import { auth } from './firebase.js';
+
+let confirmationResult = null;
+let currentPhone       = '';
 
 // ── screen navigation ─────────────────────────
 function goTo(id) {
@@ -21,13 +29,13 @@ function hideError(elId) {
   document.getElementById(elId).classList.remove('show');
 }
 
-
+// ── step 1: send OTP via Firebase ─────────────
 async function sendOTP() {
   const raw   = document.getElementById('phone-input').value.trim();
-  const phone = normalisePhone(raw);
+  const phone = raw.startsWith('+') ? raw.replace(/[\s\-().]/g, '') : '+' + raw.replace(/[\s\-().]/g, '');
 
   if (phone.length < 8) {
-    showError('phone-error', 'Please enter a valid WhatsApp number with country code.');
+    showError('phone-error', 'Please enter a valid phone number with country code.');
     return;
   }
 
@@ -37,30 +45,37 @@ async function sendOTP() {
   btn.textContent = 'Sending…';
 
   try {
-    const res  = await fetch('/.netlify/functions/send-otp', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ phone })
-    });
-    const data = await res.json();
+    // set up invisible reCAPTCHA — required by Firebase Phone Auth
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-btn', {
+        size: 'invisible',
+        callback: () => {}
+      });
+    }
 
-    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-
+    confirmationResult = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
     currentPhone = phone;
+
     goTo('s-otp');
     document.getElementById('otp-phone-display').textContent = phone;
     focusOTPBox('o1');
   } catch (err) {
-    showError('phone-error', err.message);
+    console.error('sendOTP error:', err);
+    // reset recaptcha on error so user can retry
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+    showError('phone-error', err.message || 'Failed to send code. Check your number and try again.');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Send code on WhatsApp';
+    btn.textContent = 'Send code via SMS';
   }
 }
 
-
+// ── step 2: verify OTP ────────────────────────
 function getOTPValue() {
-  return ['o1','o2','o3','o4'].map(id => document.getElementById(id).value).join('');
+  return ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id).value).join('');
 }
 
 function focusOTPBox(id) {
@@ -77,12 +92,12 @@ function otpInput(e, nextId) {
   const val = e.target.value.replace(/\D/g, '');
   e.target.value = val.slice(-1);
   if (val && nextId) document.getElementById(nextId).focus();
-  if (getOTPValue().length === 4) verifyOTP();
+  if (getOTPValue().length === 6) verifyOTP();
 }
 
 async function verifyOTP() {
   const code = getOTPValue();
-  if (code.length < 4) return;
+  if (code.length < 6) return;
 
   hideError('otp-error');
   const btn = document.getElementById('verify-btn');
@@ -90,22 +105,16 @@ async function verifyOTP() {
   btn.textContent = 'Verifying…';
 
   try {
-    const res  = await fetch('/.netlify/functions/verify-otp', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ phone: currentPhone, code })
-    });
-    const data = await res.json();
+    await confirmationResult.confirm(code);
 
-    if (!res.ok) throw new Error(data.error || 'Incorrect code.');
-
-    
     const customer = await getOrCreateCustomer(currentPhone);
+    localStorage.setItem('sep_phone', currentPhone);
     renderCard(customer);
     goTo('s-card');
   } catch (err) {
-    showError('otp-error', err.message);
-    ['o1','o2','o3','o4'].forEach(id => { document.getElementById(id).value = ''; });
+    console.error('verifyOTP error:', err);
+    showError('otp-error', 'Incorrect code. Please try again.');
+    ['o1','o2','o3','o4','o5','o6'].forEach(id => { document.getElementById(id).value = ''; });
     focusOTPBox('o1');
   } finally {
     btn.disabled = false;
@@ -113,7 +122,7 @@ async function verifyOTP() {
   }
 }
 
-
+// ── render card ───────────────────────────────
 function renderCard(customer) {
   document.getElementById('card-phone').textContent = customer.phone;
   document.getElementById('info-phone').textContent  = customer.phone;
@@ -139,7 +148,6 @@ export function buildCircles(containerId, stamps) {
     el.appendChild(circle);
   }
 
-  
   const free = document.createElement('div');
   free.className = 'stamp-circle free-slot' + (stamps >= 5 ? ' earned' : '');
   const lbl = document.createElement('span');
@@ -155,28 +163,46 @@ export function updateProgress(fillId, textId, stamps) {
   document.getElementById(textId).textContent  = stamps + ' / 5 drinks';
 }
 
+// ── boot ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Phone screen
+  // restore session on reload
+  const savedPhone = localStorage.getItem('sep_phone');
+  if (savedPhone) {
+    currentPhone = savedPhone;
+    try {
+      const customer = await getOrCreateCustomer(savedPhone);
+      renderCard(customer);
+      goTo('s-card');
+    } catch {
+      localStorage.removeItem('sep_phone');
+    }
+  }
+
   document.getElementById('send-otp-btn').addEventListener('click', sendOTP);
   document.getElementById('phone-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendOTP();
   });
 
-  
+  // 6-digit OTP boxes for Firebase (Firebase sends 6 digits, not 4)
   document.getElementById('o1').addEventListener('input',   e => otpInput(e, 'o2'));
   document.getElementById('o2').addEventListener('input',   e => otpInput(e, 'o3'));
   document.getElementById('o2').addEventListener('keydown', e => otpKeyDown(e, 'o1'));
   document.getElementById('o3').addEventListener('input',   e => otpInput(e, 'o4'));
   document.getElementById('o3').addEventListener('keydown', e => otpKeyDown(e, 'o2'));
-  document.getElementById('o4').addEventListener('input',   e => otpInput(e, null));
+  document.getElementById('o4').addEventListener('input',   e => otpInput(e, 'o5'));
   document.getElementById('o4').addEventListener('keydown', e => otpKeyDown(e, 'o3'));
+  document.getElementById('o5').addEventListener('input',   e => otpInput(e, 'o6'));
+  document.getElementById('o5').addEventListener('keydown', e => otpKeyDown(e, 'o4'));
+  document.getElementById('o6').addEventListener('input',   e => otpInput(e, null));
+  document.getElementById('o6').addEventListener('keydown', e => otpKeyDown(e, 'o5'));
+
   document.getElementById('verify-btn').addEventListener('click', verifyOTP);
   document.getElementById('back-to-phone').addEventListener('click', () => goTo('s-phone'));
 
-  
   document.getElementById('logout-btn').addEventListener('click', () => {
     currentPhone = '';
+    localStorage.removeItem('sep_phone');
     document.getElementById('phone-input').value = '';
     goTo('s-phone');
   });

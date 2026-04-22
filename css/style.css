@@ -124,6 +124,9 @@ body {
   box-shadow: none;
   padding: 0;
 }
+.fav{
+  border-radius: 50%;
+}
 .card-brand-en {
   font-size: 9px;
   letter-spacing: 4px;
