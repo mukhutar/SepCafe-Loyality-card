@@ -20,10 +20,10 @@
     <!-- ── Screen 1: Phone entry ── -->
     <div class="screen active" id="s-phone">
       <p class="screen-title">Welcome back</p>
-      <p class="screen-sub">Enter your WhatsApp number and we'll send you a quick verification code.</p>
+      <p class="screen-sub">Enter your Phone number and we'll send you a quick verification code.</p>
 
       <div class="form-group">
-        <label class="form-label" for="phone-input">WhatsApp number</label>
+        <label class="form-label" for="phone-input">Phone number</label>
         <input
           class="form-input"
           id="phone-input"
@@ -36,16 +36,16 @@
       <div class="alert alert-error" id="phone-error"></div>
 
       <button class="btn btn-primary" id="send-otp-btn">
-        Send code on WhatsApp
+        Send SMS Code
       </button>
     </div>
 
     <!-- ── Screen 2: OTP verify ── -->
     <div class="screen" id="s-otp">
       <span class="back-link" id="back-to-phone">← Back</span>
-      <p class="screen-title">Check WhatsApp</p>
+      <p class="screen-title">Check SMS</p>
       <p class="screen-sub">
-        We sent a 4-digit code to <strong id="otp-phone-display"></strong>.
+        We sent a 6-digit code to <strong id="otp-phone-display"></strong>.
         Enter it below.
       </p>
 
@@ -62,7 +62,7 @@
 
       <button class="btn btn-primary" id="verify-btn">Verify</button>
       <button class="btn btn-ghost" id="back-to-phone-btn" onclick="document.getElementById('back-to-phone').click()">
-        Resend code
+        Resend SMS
       </button>
     </div>
 
