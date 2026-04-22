@@ -33,9 +33,7 @@ function setupRecaptcha() {
 
   window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
     size: 'normal',
-    callback: () => {
-      // reCAPTCHA solved — user can now send OTP
-    },
+    callback: () => {},
     'expired-callback': () => {
       showError('phone-error', 'reCAPTCHA expired. Please verify again.');
       window.recaptchaVerifier = null;
@@ -70,7 +68,6 @@ async function sendOTP() {
     focusOTPBox('o1');
   } catch (err) {
     console.error('sendOTP error:', err);
-    // reset recaptcha on error
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.render().then(widgetId => {
         grecaptcha.reset(widgetId);
@@ -119,6 +116,7 @@ async function verifyOTP() {
 
     const customer = await getOrCreateCustomer(currentPhone);
     localStorage.setItem('sep_phone', currentPhone);
+    localStorage.setItem('sep_customer', JSON.stringify(customer));
     renderCard(customer);
     goTo('s-card');
   } catch (err) {
@@ -176,16 +174,22 @@ export function updateProgress(fillId, textId, stamps) {
 // ── boot ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
 
-  // restore session on reload
-  const savedPhone = localStorage.getItem('sep_phone');
-  if (savedPhone) {
+  const savedPhone    = localStorage.getItem('sep_phone');
+  const savedCustomer = localStorage.getItem('sep_customer');
+
+  if (savedPhone && savedCustomer) {
+    // Render immediately from cache
     currentPhone = savedPhone;
+    renderCard(JSON.parse(savedCustomer));
+    goTo('s-card');
+
+    // Refresh silently in background to get latest stamps
     try {
-      const customer = await getOrCreateCustomer(savedPhone);
-      renderCard(customer);
-      goTo('s-card');
-    } catch {
-      localStorage.removeItem('sep_phone');
+      const fresh = await getOrCreateCustomer(savedPhone);
+      localStorage.setItem('sep_customer', JSON.stringify(fresh));
+      renderCard(fresh);
+    } catch (err) {
+      console.warn('Background refresh failed, showing cached data:', err);
     }
   }
 
@@ -215,6 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logout-btn').addEventListener('click', () => {
     currentPhone = '';
     localStorage.removeItem('sep_phone');
+    localStorage.removeItem('sep_customer');
     document.getElementById('phone-input').value = '';
     goTo('s-phone');
   });

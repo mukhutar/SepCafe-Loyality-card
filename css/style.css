@@ -127,6 +127,12 @@ body {
 .fav{
   border-radius: 50%;
 }
+
+#recaptcha-container{
+  /* margin: 1rem; */
+  justify-content: center;
+  display: flex;
+}
 .card-brand-en {
   font-size: 9px;
   letter-spacing: 4px;
