@@ -452,3 +452,10 @@ body {
 .pin-key:hover { background: var(--cream-dk); }
 .pin-key:active { transform: scale(0.96); }
 .pin-key.del { font-family: 'DM Sans', sans-serif; font-size: 16px; }
+
+@media(max-width:599px){
+
+  .otp-input {
+    width: 48px;
+  }
+}
