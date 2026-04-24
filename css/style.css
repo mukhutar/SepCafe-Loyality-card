@@ -459,3 +459,40 @@ body {
     width: 48px;
   }
 }
+
+/* Google sign-in button */
+.btn-google {
+  background: white;
+  color: #3c3c3c;
+  border: 1.5px solid var(--cream-dk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s, background 0.15s;
+}
+.btn-google:hover:not(:disabled) {
+  background: #f8f8f8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* OR divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1.25rem 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--cream-dk);
+}

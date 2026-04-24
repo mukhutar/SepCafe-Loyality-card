@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAQ9IHebvkjYV3SqJbEC7mTZrYdBgLRWII",
@@ -16,6 +16,10 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// ── Google provider ───────────────────────────
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // ── phone normaliser ──────────────────────────
 export function normalisePhone(raw) {
@@ -35,6 +39,7 @@ async function post(endpoint, body) {
   return data;
 }
 
-export const getOrCreateCustomer = (phone) => post('get-customer', { phone });
-export const addStamp            = (phone) => post('add-stamp',    { phone });
-export const getCustomer         = (phone) => post('get-customer', { phone });
+export const getOrCreateCustomer      = (phone) => post('get-customer',       { phone });
+export const getOrCreateGoogleCustomer = (email, name) => post('get-customer-google', { email, name });
+export const addStamp                  = (phone) => post('add-stamp',          { phone });
+export const getCustomer               = (phone) => post('get-customer',       { phone });
