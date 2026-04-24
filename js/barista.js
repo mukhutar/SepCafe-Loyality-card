@@ -1,16 +1,15 @@
 // ─────────────────────────────────────────────
 //  barista.js  –  PIN → Lookup → Stamp flow
-//
-
+// ─────────────────────────────────────────────
 
 import { normalisePhone, getCustomer, addStamp } from './firebase.js';
 import { buildCircles, updateProgress } from './customer.js';
 
-const BARISTA_PIN = '7913'; 
-
+const BARISTA_PIN = '7913';
 
 let pinBuffer    = '';
-let currentPhone = '';
+let currentPhone = '';   // holds phone OR email depending on lookup mode
+let lookupMode   = 'phone'; // 'phone' | 'email'
 let isStamping   = false;
 
 function goTo(id) {
@@ -27,7 +26,7 @@ function hideAlert(elId) {
   document.getElementById(elId).classList.remove('show');
 }
 
-
+// ── PIN logic ─────────────────────────────────
 function updatePinDots() {
   document.querySelectorAll('.pin-dot').forEach((dot, i) => {
     dot.classList.toggle('filled', i < pinBuffer.length);
@@ -61,13 +60,60 @@ function checkPin() {
   }
 }
 
-async function lookupCustomer() {
-  const raw   = document.getElementById('lookup-input').value.trim();
-  const phone = normalisePhone(raw);
+// ── Lookup mode toggle ────────────────────────
+function setLookupMode(mode) {
+  lookupMode = mode;
+  const input  = document.getElementById('lookup-input');
+  const label  = document.getElementById('lookup-label');
+  const phoneBtn = document.getElementById('toggle-phone');
+  const emailBtn = document.getElementById('toggle-email');
 
-  if (phone.length < 8) {
-    showAlert('lookup-error', 'Enter a valid phone number.');
+  hideAlert('lookup-error');
+  input.value = '';
+
+  if (mode === 'phone') {
+    input.type        = 'tel';
+    input.placeholder = '+968 9X XXX XXXX';
+    label.textContent = 'Customer phone';
+    phoneBtn.classList.add('active');
+    emailBtn.classList.remove('active');
+  } else {
+    input.type        = 'email';
+    input.placeholder = 'customer@gmail.com';
+    label.textContent = 'Customer Gmail';
+    emailBtn.classList.add('active');
+    phoneBtn.classList.remove('active');
+  }
+
+  input.focus();
+}
+
+// ── Customer lookup ───────────────────────────
+async function lookupCustomer() {
+  const raw = document.getElementById('lookup-input').value.trim();
+
+  if (!raw) {
+    showAlert('lookup-error', lookupMode === 'phone'
+      ? 'Enter a valid phone number.'
+      : 'Enter a valid Gmail address.');
     return;
+  }
+
+  let identifier;
+
+  if (lookupMode === 'phone') {
+    identifier = normalisePhone(raw);
+    if (identifier.length < 8) {
+      showAlert('lookup-error', 'Enter a valid phone number with country code.');
+      return;
+    }
+  } else {
+    // basic email validation
+    if (!raw.includes('@') || !raw.includes('.')) {
+      showAlert('lookup-error', 'Enter a valid email address.');
+      return;
+    }
+    identifier = raw.toLowerCase();
   }
 
   hideAlert('lookup-error');
@@ -76,13 +122,24 @@ async function lookupCustomer() {
   btn.textContent = 'Looking up…';
 
   try {
-    const customer = await getCustomer(phone);
+    // For phone: use existing get-customer endpoint
+    // For email: use get-customer-google endpoint
+    let customer;
+    if (lookupMode === 'phone') {
+      customer = await getCustomer(identifier);
+    } else {
+      customer = await getGoogleCustomer(identifier);
+    }
+
     if (!customer) {
-      showAlert('lookup-error', 'No customer found with that number. They need to register first via the customer page.');
+      showAlert('lookup-error', lookupMode === 'phone'
+        ? 'No customer found with that number. They need to register via the customer page.'
+        : 'No customer found with that Gmail. They need to sign in via the customer page first.');
       return;
     }
-    currentPhone = phone;
-    renderStampPanel(customer);
+
+    currentPhone = identifier;
+    renderStampPanel(customer, lookupMode);
     goTo('s-stamp');
   } catch (err) {
     showAlert('lookup-error', err.message);
@@ -92,9 +149,27 @@ async function lookupCustomer() {
   }
 }
 
+// ── Fetch Google customer from Netlify ────────
+async function getGoogleCustomer(email) {
+  const res = await fetch('/.netlify/functions/get-customer-google', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, name: '' }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Lookup failed');
+  return data;
+}
 
-function renderStampPanel(customer) {
-  document.getElementById('stamp-phone').textContent = customer.phone;
+// ── Stamp panel render ────────────────────────
+function renderStampPanel(customer, mode) {
+  const identifier = customer.phone || customer.email || '';
+  document.getElementById('stamp-phone').textContent = identifier;
+
+  // Show badge indicating auth type
+  const badge = document.getElementById('auth-badge');
+  badge.textContent = mode === 'email' ? '✉️ Google account' : '📱 Phone account';
+
   buildCircles('stamp-circles', customer.stamps);
   updateProgress('s-progress-fill', 's-progress-text', customer.stamps);
 
@@ -111,6 +186,7 @@ function renderStampPanel(customer) {
   }
 }
 
+// ── Add stamp ─────────────────────────────────
 async function doStamp() {
   if (isStamping) return;
   isStamping = true;
@@ -120,8 +196,16 @@ async function doStamp() {
   btn.textContent = 'Saving…';
 
   try {
-    const updated = await addStamp(currentPhone);
-    renderStampPanel(updated);
+    let updated;
+
+    if (lookupMode === 'phone') {
+      updated = await addStamp(currentPhone);
+    } else {
+      // Call a google-specific add-stamp endpoint
+      updated = await addStampGoogle(currentPhone);
+    }
+
+    renderStampPanel(updated, lookupMode);
 
     if (updated.justUnlocked) {
       document.getElementById('stamp-status').textContent =
@@ -138,15 +222,28 @@ async function doStamp() {
   }
 }
 
+// ── Add stamp for Google customer ─────────────
+async function addStampGoogle(email) {
+  const res = await fetch('/.netlify/functions/add-stamp-google', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Stamp failed');
+  return data;
+}
 
+// ── Boot ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // PIN pad keys
+
+  // PIN pad
   document.querySelectorAll('.pin-key[data-digit]').forEach(key => {
     key.addEventListener('click', () => pinPress(key.dataset.digit));
   });
   document.getElementById('pin-del').addEventListener('click', pinDelete);
 
- 
+  // Keyboard PIN entry
   document.addEventListener('keydown', e => {
     const screen = document.querySelector('.screen.active');
     if (!screen || screen.id !== 's-pin') return;
@@ -154,15 +251,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Backspace') pinDelete();
   });
 
+  // Lookup mode toggle
+  document.getElementById('toggle-phone').addEventListener('click', () => setLookupMode('phone'));
+  document.getElementById('toggle-email').addEventListener('click', () => setLookupMode('email'));
 
+  // Lookup
   document.getElementById('lookup-btn').addEventListener('click', lookupCustomer);
   document.getElementById('lookup-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') lookupCustomer();
   });
 
+  // Stamp
   document.getElementById('stamp-btn').addEventListener('click', doStamp);
 
-  
+  // Navigation
   document.getElementById('back-to-lookup').addEventListener('click', () => {
     document.getElementById('lookup-input').value = '';
     hideAlert('lookup-error');
